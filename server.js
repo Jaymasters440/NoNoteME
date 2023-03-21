@@ -20,61 +20,73 @@ app.use(express.static('public'));
 
 // GET Route for homepage
 app.get('/', (req, res) =>
-  res.sendFile(path.join(__dirname, '/public/index.html'))
+    res.sendFile(path.join(__dirname, '/public/index.html'))
 );
 
 // GET Route for feedback page
-app.get('/notes', (req, res) =>{
-  res.sendFile(path.join(__dirname, '/public/notes.html'))
+app.get('/notes', (req, res) => {
+    res.sendFile(path.join(__dirname, '/public/notes.html'))
 });
 
-
+// add Delete option//
 app.delete('/api/notes/:id', (req, res) => {
     var targetId = req.params.id
-    var content = ""
     readFromFile('./db/db.json').then((data) => {
         let jsonNotes = (JSON.parse(data));
-        jsonNotes.forEach((note) => {
-            if (note.id !== targetId){
-                content += note 
-            }
-          });
-          writeToFile ('./db/db.json', content )
+        const result = jsonNotes.filter((note) => note.id !== targetId);
+        writeToFile('./db/db.json', result);
+
+        res.json(`Item ${targetId} has been deleted 🗑️`);
     });
 })
+
 
 app.post('/api/notes', (req, res) => {
     // Destructuring assignment for the items in req.body
     const { title, text } = req.body;
-  
+
     // If all the required properties are present
     if (title && text) {
-      // Variable for the object we will save
-      const newNote = {
-        "title":title,
-        "text": text,
-        "id": uuidv4(),
-      };
-  
-      readAndAppend(newNote, './db/db.json');
-  
-      const response = {
-        status: 'success',
-        body: newNote,
-      };
-  
-      res.json(response);
+        // Variable for the object we will save
+        const newNote = {
+            "title": title,
+            "text": text,
+            "id": uuidv4(),
+        };
+
+        readAndAppend(newNote, './db/db.json');
+
+        const response = {
+            status: 'success',
+            body: newNote,
+        };
+
+        res.json(response);
     } else {
-      res.json('Error in posting note');
+        res.json('Error in posting note');
     }
+});
+
+app.get('/api/notes', (req, res) => {
+    readFromFile('./db/db.json')
+    .then((data) => {
+        res.json(JSON.parse(data))
+    });
+});
+
+
+app.get('/api/notes/:id', (req, res) => {
+    const targetId = req.params.id;
+    readFromFile('./db/db.json')
+      .then((data) => JSON.parse(data))
+      .then((json) => {
+        const result = json.filter((note) => note.id === targetId);
+        return result.length > 0
+          ? res.json(result)
+          : res.json('No tip with that ID');
+      });
   });
 
-  app.get('/api/notes', (req, res) =>
-  readFromFile('./db/db.json').then((data) => res.json(JSON.parse(data)))
-);
-
-
-
 app.listen(PORT, () =>
-  console.log(`App listening at http://localhost:${PORT} 🚀`)
+    console.log(`App listening at http://localhost:${PORT} 🚀`)
 );
